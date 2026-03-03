@@ -1,0 +1,6 @@
+.env
+*.db
+*.pdf
+__pycache__/
+*.pyc
+grafico_temp.png
