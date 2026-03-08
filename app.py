@@ -4,13 +4,9 @@ import psycopg2
 from datetime import datetime
 from dotenv import load_dotenv
 
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib import colors
-
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
 
 # =============================
 # CARREGAR VARIÁVEIS DE AMBIENTE
@@ -48,7 +44,6 @@ def criar_banco():
     )
     """)
 
-    # NOVA TABELA DE MESES FECHADOS
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS meses_fechados (
         id SERIAL PRIMARY KEY,
@@ -62,7 +57,6 @@ def criar_banco():
     cursor.close()
     conn.close()
 
-# Inicialização segura do banco
 try:
     if DATABASE_URL:
         criar_banco()
@@ -293,10 +287,7 @@ def exportar_pdf():
     cursor.close()
     conn.close()
 
-    receitas, despesas, saldo = calcular_resumo(registros)
-
     file_path = "relatorio_financeiro.pdf"
-    grafico_path = "grafico_temp.png"
 
     doc = SimpleDocTemplate(file_path)
 
@@ -325,20 +316,8 @@ def exportar_pdf():
     ]))
 
     elementos.append(tabela)
-    elementos.append(Spacer(1,40))
-
-    plt.figure()
-    plt.bar(['Receitas','Despesas'],[receitas,despesas])
-    plt.title("Receitas vs Despesas")
-    plt.savefig(grafico_path)
-    plt.close()
-
-    elementos.append(Image(grafico_path,width=400,height=300))
 
     doc.build(elementos)
-
-    if os.path.exists(grafico_path):
-        os.remove(grafico_path)
 
     return send_file(file_path, as_attachment=True)
 
