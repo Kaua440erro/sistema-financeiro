@@ -9,7 +9,6 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib import colors
 from reportlab.lib.units import inch
 
-# Backend correto do Matplotlib para servidor
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -26,9 +25,6 @@ app = Flask(__name__)
 # =============================
 
 DATABASE_URL = os.getenv("DATABASE_URL")
-
-if not DATABASE_URL:
-    raise ValueError("DATABASE_URL não encontrada. Verifique seu arquivo .env")
 
 def get_connection():
     return psycopg2.connect(DATABASE_URL)
@@ -51,7 +47,9 @@ def criar_banco():
     cursor.close()
     conn.close()
 
-criar_banco()
+# cria tabela ao iniciar
+if DATABASE_URL:
+    criar_banco()
 
 # =============================
 # FUNÇÃO RESUMO
@@ -69,22 +67,26 @@ def calcular_resumo(registros):
 
 @app.route("/", methods=["GET", "POST"])
 def index():
+
     conn = get_connection()
     cursor = conn.cursor()
 
     if request.method == "POST":
+
         descricao = request.form["descricao"]
         tipo = request.form["tipo"]
         valor = float(request.form["valor"])
         data = request.form["data"]
 
         cursor.execute(
-            "INSERT INTO registros (descricao, tipo, valor, data) VALUES (%s, %s, %s, %s)",
+            "INSERT INTO registros (descricao, tipo, valor, data) VALUES (%s,%s,%s,%s)",
             (descricao, tipo, valor, data)
         )
+
         conn.commit()
         cursor.close()
         conn.close()
+
         return redirect("/")
 
     cursor.execute("SELECT * FROM registros ORDER BY data DESC")
@@ -109,6 +111,7 @@ def index():
 
 @app.route("/exportar_pdf")
 def exportar_pdf():
+
     ano = request.args.get("ano")
     mes = request.args.get("mes")
 
@@ -144,15 +147,17 @@ def exportar_pdf():
     grafico_path = "grafico_temp.png"
 
     doc = SimpleDocTemplate(file_path)
+
     elementos = []
     styles = getSampleStyleSheet()
 
     elementos.append(Paragraph("Relatório Financeiro", styles['Title']))
-    elementos.append(Spacer(1, 0.3 * inch))
+    elementos.append(Spacer(1, 20))
 
-    # Tabela principal
     dados = [["Data", "Descrição", "Tipo", "Valor (R$)"]]
+
     for r in registros:
+
         dados.append([
             r[4].strftime("%d/%m/%Y"),
             r[1],
@@ -160,39 +165,39 @@ def exportar_pdf():
             f"{float(r[3]):.2f}"
         ])
 
-    tabela = Table(dados, colWidths=[1.2 * inch, 2 * inch, 1 * inch, 1.2 * inch])
+    tabela = Table(dados)
+
     tabela.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1F3A93')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-        ('ALIGN', (-1, 1), (-1, -1), 'RIGHT'),
+        ('BACKGROUND',(0,0),(-1,0),colors.HexColor('#1F3A93')),
+        ('TEXTCOLOR',(0,0),(-1,0),colors.white),
+        ('GRID',(0,0),(-1,-1),0.5,colors.grey),
+        ('ALIGN',(-1,1),(-1,-1),'RIGHT'),
     ]))
 
     elementos.append(tabela)
-    elementos.append(Spacer(1, 0.5 * inch))
+    elementos.append(Spacer(1,40))
 
-    # Gráfico
     plt.figure()
-    plt.bar(['Receitas', 'Despesas'], [receitas, despesas])
-    plt.title('Receitas vs Despesas')
+    plt.bar(['Receitas','Despesas'],[receitas,despesas])
+    plt.title("Receitas vs Despesas")
     plt.savefig(grafico_path)
     plt.close()
 
-    elementos.append(Image(grafico_path, width=4 * inch, height=3 * inch))
-    elementos.append(Spacer(1, 0.5 * inch))
+    elementos.append(Image(grafico_path,width=400,height=300))
+    elementos.append(Spacer(1,40))
 
-    # Resumo
     resumo = [
-        ["Total Receitas", f"R$ {receitas:.2f}"],
-        ["Total Despesas", f"R$ {despesas:.2f}"],
-        ["Saldo Final", f"R$ {saldo:.2f}"]
+        ["Total Receitas",f"R$ {receitas:.2f}"],
+        ["Total Despesas",f"R$ {despesas:.2f}"],
+        ["Saldo Final",f"R$ {saldo:.2f}"]
     ]
 
-    resumo_tabela = Table(resumo, colWidths=[3 * inch, 2 * inch])
+    resumo_tabela = Table(resumo)
+
     resumo_tabela.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#D5DBDB')),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-        ('ALIGN', (1, 0), (-1, -1), 'RIGHT'),
+        ('BACKGROUND',(0,0),(-1,-1),colors.HexColor('#D5DBDB')),
+        ('GRID',(0,0),(-1,-1),0.5,colors.grey),
+        ('ALIGN',(1,0),(-1,-1),'RIGHT'),
     ]))
 
     elementos.append(resumo_tabela)
@@ -209,4 +214,5 @@ def exportar_pdf():
 # =============================
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
