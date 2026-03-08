@@ -1,169 +1,125 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <title>Sistema Financeiro</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<meta charset="UTF-8">
+<title>Sistema Financeiro</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
+
 <body>
 
 <div class="container">
 
-    <h1>📊 Sistema Financeiro</h1>
+<h1>📊 Sistema Financeiro</h1>
 
-    <!-- MENU -->
-    <div class="card">
-        <a href="/">Início</a> |
-        <a href="/historico">Histórico</a> |
-        <a href="/comparativo">Comparativo</a>
-    </div>
+<div class="card">
 
-    <!-- FILTRO POR PERÍODO -->
-    <div class="card">
-        <h2>Filtrar por período</h2>
-
-        <form method="get" action="/">
-
-            <select name="mes">
-                <option value="">Mês</option>
-                <option value="1" {% if mes == "1" %}selected{% endif %}>Janeiro</option>
-                <option value="2" {% if mes == "2" %}selected{% endif %}>Fevereiro</option>
-                <option value="3" {% if mes == "3" %}selected{% endif %}>Março</option>
-                <option value="4" {% if mes == "4" %}selected{% endif %}>Abril</option>
-                <option value="5" {% if mes == "5" %}selected{% endif %}>Maio</option>
-                <option value="6" {% if mes == "6" %}selected{% endif %}>Junho</option>
-                <option value="7" {% if mes == "7" %}selected{% endif %}>Julho</option>
-                <option value="8" {% if mes == "8" %}selected{% endif %}>Agosto</option>
-                <option value="9" {% if mes == "9" %}selected{% endif %}>Setembro</option>
-                <option value="10" {% if mes == "10" %}selected{% endif %}>Outubro</option>
-                <option value="11" {% if mes == "11" %}selected{% endif %}>Novembro</option>
-                <option value="12" {% if mes == "12" %}selected{% endif %}>Dezembro</option>
-            </select>
-
-            <input type="number" name="ano" placeholder="Ano (ex: 2026)" value="{{ ano }}">
-
-            <button type="submit">Filtrar</button>
-
-        </form>
-    </div>
-
-    <!-- STATUS DO MÊS -->
-    {% if mes and ano %}
-    <div class="card">
-
-        {% if fechado %}
-
-        <h2>🔒 Mês Fechado</h2>
-        <p>Este mês já foi finalizado e não aceita novos lançamentos.</p>
-
-        {% else %}
-
-        <h2>Fechamento do mês</h2>
-
-        <form method="post" action="/fechar_mes">
-
-            <input type="hidden" name="mes" value="{{ mes }}">
-            <input type="hidden" name="ano" value="{{ ano }}">
-
-            <button type="submit">Fechar mês</button>
-
-        </form>
-
-        {% endif %}
-
-    </div>
-    {% endif %}
-
-    <!-- FORMULÁRIO PRINCIPAL -->
-    <div class="card">
-        <h2>Adicionar Registro</h2>
-
-        {% if fechado %}
-
-        <p>⚠️ Não é possível adicionar registros porque o mês está fechado.</p>
-
-        {% else %}
-
-        <form method="post" action="/">
-
-            <input type="text" name="descricao" placeholder="Descrição" required>
-
-            <select name="tipo" required>
-                <option value="">Selecione</option>
-                <option value="receita">Receita</option>
-                <option value="despesa">Despesa</option>
-            </select>
-
-            <input type="number" step="0.01" name="valor" placeholder="Valor" required>
-
-            <input type="date" name="data" required>
-
-            <button type="submit">Salvar</button>
-
-        </form>
-
-        {% endif %}
-
-    </div>
-
-    <!-- RESUMO -->
-    <div class="card resumo">
-
-        <h2>Resumo Financeiro</h2>
-
-        <p><strong>Total Receitas:</strong> R$ {{ receitas }}</p>
-        <p><strong>Total Despesas:</strong> R$ {{ despesas }}</p>
-        <p><strong>Saldo Final:</strong> R$ {{ saldo }}</p>
-
-    </div>
-
-    <!-- TABELA DE REGISTROS -->
-    <div class="card">
-
-        <h2>Registros</h2>
-
-        <table>
-
-            <tr>
-                <th>Data</th>
-                <th>Descrição</th>
-                <th>Tipo</th>
-                <th>Valor</th>
-            </tr>
-
-            {% for r in registros %}
-
-            <tr>
-                <td>{{ r[4].strftime("%d/%m/%Y") }}</td>
-                <td>{{ r[1] }}</td>
-                <td>{{ r[2] }}</td>
-                <td>R$ {{ r[3] }}</td>
-            </tr>
-
-            {% endfor %}
-
-        </table>
-
-    </div>
-
-    <!-- EXPORTAR PDF -->
-    <div class="card">
-
-        <h2>Exportar Relatório</h2>
-
-        <form method="get" action="/exportar_pdf">
-
-            <input type="number" name="ano" placeholder="Ano (ex: 2026)" value="{{ ano }}">
-
-            <input type="number" name="mes" placeholder="Mês (1-12)" value="{{ mes }}">
-
-            <button type="submit">Exportar PDF</button>
-
-        </form>
-
-    </div>
+<a href="/">Início</a> |
+<a href="/exportar_pdf">Exportar PDF</a>
 
 </div>
+
+<div class="card">
+
+<h2>Adicionar Registro</h2>
+
+<form method="post">
+
+<input type="text" name="descricao" placeholder="Descrição" required>
+
+<select name="tipo" required>
+<option value="">Selecione</option>
+<option value="receita">Receita</option>
+<option value="despesa">Despesa</option>
+</select>
+
+<input type="number" step="0.01" name="valor" placeholder="Valor" required>
+
+<input type="date" name="data" required>
+
+<button type="submit">Salvar</button>
+
+</form>
+
+</div>
+
+<div class="card resumo">
+
+<h2>Resumo Financeiro</h2>
+
+<p><strong>Receitas:</strong> R$ {{ receitas }}</p>
+<p><strong>Despesas:</strong> R$ {{ despesas }}</p>
+<p><strong>Saldo:</strong> R$ {{ saldo }}</p>
+
+</div>
+
+<div class="card">
+
+<h2>Gráfico Financeiro</h2>
+
+<canvas id="grafico"></canvas>
+
+</div>
+
+<div class="card">
+
+<h2>Registros</h2>
+
+<table>
+
+<tr>
+<th>Data</th>
+<th>Descrição</th>
+<th>Tipo</th>
+<th>Valor</th>
+</tr>
+
+{% for r in registros %}
+
+<tr>
+<td>{{ r[4] }}</td>
+<td>{{ r[1] }}</td>
+<td>{{ r[2] }}</td>
+<td>R$ {{ r[3] }}</td>
+</tr>
+
+{% endfor %}
+
+</table>
+
+</div>
+
+</div>
+
+<script>
+
+const receitas = { receitas };
+const despesas = { despesas };
+
+const ctx = document.getElementById('grafico');
+
+new Chart(ctx, {
+
+type: 'doughnut',
+
+data: {
+
+labels: ['Receitas','Despesas'],
+
+datasets: [{
+
+data: [receitas, despesas],
+
+}]
+
+}
+
+});
+
+</script>
 
 </body>
 </html>
