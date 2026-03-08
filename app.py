@@ -42,6 +42,16 @@ def criar_banco():
     )
     """)
 
+    # NOVA TABELA DE MESES FECHADOS
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS meses_fechados (
+        id SERIAL PRIMARY KEY,
+        mes INTEGER NOT NULL,
+        ano INTEGER NOT NULL,
+        UNIQUE(mes, ano)
+    )
+    """)
+
     conn.commit()
     cursor.close()
     conn.close()
@@ -60,6 +70,27 @@ def calcular_resumo(registros):
     return receitas, despesas, saldo
 
 # =============================
+# VERIFICAR SE MÊS ESTÁ FECHADO
+# =============================
+
+def mes_esta_fechado(mes, ano):
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "SELECT 1 FROM meses_fechados WHERE mes=%s AND ano=%s",
+        (mes, ano)
+    )
+
+    fechado = cursor.fetchone() is not None
+
+    cursor.close()
+    conn.close()
+
+    return fechado
+
+# =============================
 # ROTA PRINCIPAL
 # =============================
 
@@ -75,6 +106,11 @@ def index():
         tipo = request.form["tipo"]
         valor = float(request.form["valor"])
         data = request.form["data"]
+
+        data_obj = datetime.strptime(data,"%Y-%m-%d")
+
+        if mes_esta_fechado(data_obj.month, data_obj.year):
+            return "Este mês já foi fechado e não aceita novos lançamentos."
 
         cursor.execute(
             "INSERT INTO registros (descricao, tipo, valor, data) VALUES (%s,%s,%s,%s)",
@@ -112,6 +148,10 @@ def index():
 
     receitas, despesas, saldo = calcular_resumo(registros)
 
+    fechado = False
+    if mes and ano:
+        fechado = mes_esta_fechado(int(mes), int(ano))
+
     return render_template(
         "index.html",
         registros=registros,
@@ -119,8 +159,34 @@ def index():
         despesas=despesas,
         saldo=saldo,
         mes=mes,
-        ano=ano
+        ano=ano,
+        fechado=fechado
     )
+
+# =============================
+# FECHAR MÊS
+# =============================
+
+@app.route("/fechar_mes", methods=["POST"])
+def fechar_mes():
+
+    mes = int(request.form["mes"])
+    ano = int(request.form["ano"])
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "INSERT INTO meses_fechados (mes, ano) VALUES (%s,%s) ON CONFLICT DO NOTHING",
+        (mes, ano)
+    )
+
+    conn.commit()
+
+    cursor.close()
+    conn.close()
+
+    return redirect(f"/?mes={mes}&ano={ano}")
 
 # =============================
 # HISTÓRICO MENSAL

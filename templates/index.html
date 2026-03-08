@@ -26,30 +26,63 @@
 
             <select name="mes">
                 <option value="">Mês</option>
-                <option value="1">Janeiro</option>
-                <option value="2">Fevereiro</option>
-                <option value="3">Março</option>
-                <option value="4">Abril</option>
-                <option value="5">Maio</option>
-                <option value="6">Junho</option>
-                <option value="7">Julho</option>
-                <option value="8">Agosto</option>
-                <option value="9">Setembro</option>
-                <option value="10">Outubro</option>
-                <option value="11">Novembro</option>
-                <option value="12">Dezembro</option>
+                <option value="1" {% if mes == "1" %}selected{% endif %}>Janeiro</option>
+                <option value="2" {% if mes == "2" %}selected{% endif %}>Fevereiro</option>
+                <option value="3" {% if mes == "3" %}selected{% endif %}>Março</option>
+                <option value="4" {% if mes == "4" %}selected{% endif %}>Abril</option>
+                <option value="5" {% if mes == "5" %}selected{% endif %}>Maio</option>
+                <option value="6" {% if mes == "6" %}selected{% endif %}>Junho</option>
+                <option value="7" {% if mes == "7" %}selected{% endif %}>Julho</option>
+                <option value="8" {% if mes == "8" %}selected{% endif %}>Agosto</option>
+                <option value="9" {% if mes == "9" %}selected{% endif %}>Setembro</option>
+                <option value="10" {% if mes == "10" %}selected{% endif %}>Outubro</option>
+                <option value="11" {% if mes == "11" %}selected{% endif %}>Novembro</option>
+                <option value="12" {% if mes == "12" %}selected{% endif %}>Dezembro</option>
             </select>
 
-            <input type="number" name="ano" placeholder="Ano (ex: 2026)">
+            <input type="number" name="ano" placeholder="Ano (ex: 2026)" value="{{ ano }}">
 
             <button type="submit">Filtrar</button>
 
         </form>
     </div>
 
+    <!-- STATUS DO MÊS -->
+    {% if mes and ano %}
+    <div class="card">
+
+        {% if fechado %}
+
+        <h2>🔒 Mês Fechado</h2>
+        <p>Este mês já foi finalizado e não aceita novos lançamentos.</p>
+
+        {% else %}
+
+        <h2>Fechamento do mês</h2>
+
+        <form method="post" action="/fechar_mes">
+
+            <input type="hidden" name="mes" value="{{ mes }}">
+            <input type="hidden" name="ano" value="{{ ano }}">
+
+            <button type="submit">Fechar mês</button>
+
+        </form>
+
+        {% endif %}
+
+    </div>
+    {% endif %}
+
     <!-- FORMULÁRIO PRINCIPAL -->
     <div class="card">
         <h2>Adicionar Registro</h2>
+
+        {% if fechado %}
+
+        <p>⚠️ Não é possível adicionar registros porque o mês está fechado.</p>
+
+        {% else %}
 
         <form method="post" action="/">
 
@@ -68,6 +101,9 @@
             <button type="submit">Salvar</button>
 
         </form>
+
+        {% endif %}
+
     </div>
 
     <!-- RESUMO -->
@@ -117,9 +153,9 @@
 
         <form method="get" action="/exportar_pdf">
 
-            <input type="number" name="ano" placeholder="Ano (ex: 2026)">
+            <input type="number" name="ano" placeholder="Ano (ex: 2026)" value="{{ ano }}">
 
-            <input type="number" name="mes" placeholder="Mês (1-12)">
+            <input type="number" name="mes" placeholder="Mês (1-12)" value="{{ mes }}">
 
             <button type="submit">Exportar PDF</button>
 
