@@ -25,7 +25,13 @@ app = Flask(__name__)
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
+# Correção necessária para Render/Postgres
+if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
 def get_connection():
+    if not DATABASE_URL:
+        raise Exception("DATABASE_URL não configurada")
     return psycopg2.connect(DATABASE_URL)
 
 def criar_banco():
@@ -42,6 +48,7 @@ def criar_banco():
     )
     """)
 
+    # NOVA TABELA DE MESES FECHADOS
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS meses_fechados (
         id SERIAL PRIMARY KEY,
@@ -55,8 +62,12 @@ def criar_banco():
     cursor.close()
     conn.close()
 
-if DATABASE_URL:
-    criar_banco()
+# Inicialização segura do banco
+try:
+    if DATABASE_URL:
+        criar_banco()
+except Exception as e:
+    print("Erro ao criar banco:", e)
 
 # =============================
 # FUNÇÃO RESUMO
@@ -117,6 +128,9 @@ def index():
         )
 
         conn.commit()
+        cursor.close()
+        conn.close()
+
         return redirect("/")
 
     mes = request.args.get("mes")
