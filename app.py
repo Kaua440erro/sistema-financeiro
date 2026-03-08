@@ -7,7 +7,6 @@ from dotenv import load_dotenv
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib import colors
-from reportlab.lib.units import inch
 
 import matplotlib
 matplotlib.use('Agg')
@@ -21,7 +20,7 @@ load_dotenv()
 app = Flask(__name__)
 
 # =============================
-# CONFIGURAÇÃO DO BANCO (NEON)
+# CONFIGURAÇÃO DO BANCO
 # =============================
 
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -47,7 +46,6 @@ def criar_banco():
     cursor.close()
     conn.close()
 
-# cria tabela ao iniciar
 if DATABASE_URL:
     criar_banco()
 
@@ -84,12 +82,29 @@ def index():
         )
 
         conn.commit()
-        cursor.close()
-        conn.close()
-
         return redirect("/")
 
-    cursor.execute("SELECT * FROM registros ORDER BY data DESC")
+    mes = request.args.get("mes")
+    ano = request.args.get("ano")
+
+    query = "SELECT * FROM registros"
+    filtros = []
+    valores = []
+
+    if mes:
+        filtros.append("EXTRACT(MONTH FROM data) = %s")
+        valores.append(int(mes))
+
+    if ano:
+        filtros.append("EXTRACT(YEAR FROM data) = %s")
+        valores.append(int(ano))
+
+    if filtros:
+        query += " WHERE " + " AND ".join(filtros)
+
+    query += " ORDER BY data DESC"
+
+    cursor.execute(query, valores)
     registros = cursor.fetchall()
 
     cursor.close()
@@ -102,8 +117,66 @@ def index():
         registros=registros,
         receitas=receitas,
         despesas=despesas,
-        saldo=saldo
+        saldo=saldo,
+        mes=mes,
+        ano=ano
     )
+
+# =============================
+# HISTÓRICO MENSAL
+# =============================
+
+@app.route("/historico")
+def historico():
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    SELECT
+        EXTRACT(YEAR FROM data) as ano,
+        EXTRACT(MONTH FROM data) as mes,
+        SUM(CASE WHEN tipo='receita' THEN valor ELSE 0 END) as receitas,
+        SUM(CASE WHEN tipo='despesa' THEN valor ELSE 0 END) as despesas
+    FROM registros
+    GROUP BY ano, mes
+    ORDER BY ano DESC, mes DESC
+    """)
+
+    dados = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    return render_template("historico.html", dados=dados)
+
+# =============================
+# COMPARATIVO ENTRE MESES
+# =============================
+
+@app.route("/comparativo")
+def comparativo():
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    SELECT
+        EXTRACT(MONTH FROM data) as mes,
+        SUM(CASE WHEN tipo='receita' THEN valor ELSE 0 END) as receitas,
+        SUM(CASE WHEN tipo='despesa' THEN valor ELSE 0 END) as despesas
+    FROM registros
+    WHERE EXTRACT(YEAR FROM data) = EXTRACT(YEAR FROM CURRENT_DATE)
+    GROUP BY mes
+    ORDER BY mes
+    """)
+
+    dados = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    return render_template("comparativo.html", dados=dados)
 
 # =============================
 # EXPORTAR PDF
@@ -152,16 +225,15 @@ def exportar_pdf():
     styles = getSampleStyleSheet()
 
     elementos.append(Paragraph("Relatório Financeiro", styles['Title']))
-    elementos.append(Spacer(1, 20))
+    elementos.append(Spacer(1,20))
 
-    dados = [["Data", "Descrição", "Tipo", "Valor (R$)"]]
+    dados = [["Data","Descrição","Tipo","Valor"]]
 
     for r in registros:
-
         dados.append([
             r[4].strftime("%d/%m/%Y"),
             r[1],
-            r[2].capitalize(),
+            r[2],
             f"{float(r[3]):.2f}"
         ])
 
@@ -170,8 +242,7 @@ def exportar_pdf():
     tabela.setStyle(TableStyle([
         ('BACKGROUND',(0,0),(-1,0),colors.HexColor('#1F3A93')),
         ('TEXTCOLOR',(0,0),(-1,0),colors.white),
-        ('GRID',(0,0),(-1,-1),0.5,colors.grey),
-        ('ALIGN',(-1,1),(-1,-1),'RIGHT'),
+        ('GRID',(0,0),(-1,-1),0.5,colors.grey)
     ]))
 
     elementos.append(tabela)
@@ -184,23 +255,6 @@ def exportar_pdf():
     plt.close()
 
     elementos.append(Image(grafico_path,width=400,height=300))
-    elementos.append(Spacer(1,40))
-
-    resumo = [
-        ["Total Receitas",f"R$ {receitas:.2f}"],
-        ["Total Despesas",f"R$ {despesas:.2f}"],
-        ["Saldo Final",f"R$ {saldo:.2f}"]
-    ]
-
-    resumo_tabela = Table(resumo)
-
-    resumo_tabela.setStyle(TableStyle([
-        ('BACKGROUND',(0,0),(-1,-1),colors.HexColor('#D5DBDB')),
-        ('GRID',(0,0),(-1,-1),0.5,colors.grey),
-        ('ALIGN',(1,0),(-1,-1),'RIGHT'),
-    ]))
-
-    elementos.append(resumo_tabela)
 
     doc.build(elementos)
 
@@ -214,5 +268,5 @@ def exportar_pdf():
 # =============================
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
+    port = int(os.environ.get("PORT",5000))
     app.run(host="0.0.0.0", port=port)

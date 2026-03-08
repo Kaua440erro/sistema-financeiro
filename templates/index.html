@@ -8,12 +8,51 @@
 <body>
 
 <div class="container">
+
     <h1>📊 Sistema Financeiro</h1>
+
+    <!-- MENU -->
+    <div class="card">
+        <a href="/">Início</a> |
+        <a href="/historico">Histórico</a> |
+        <a href="/comparativo">Comparativo</a>
+    </div>
+
+    <!-- FILTRO POR PERÍODO -->
+    <div class="card">
+        <h2>Filtrar por período</h2>
+
+        <form method="get" action="/">
+
+            <select name="mes">
+                <option value="">Mês</option>
+                <option value="1">Janeiro</option>
+                <option value="2">Fevereiro</option>
+                <option value="3">Março</option>
+                <option value="4">Abril</option>
+                <option value="5">Maio</option>
+                <option value="6">Junho</option>
+                <option value="7">Julho</option>
+                <option value="8">Agosto</option>
+                <option value="9">Setembro</option>
+                <option value="10">Outubro</option>
+                <option value="11">Novembro</option>
+                <option value="12">Dezembro</option>
+            </select>
+
+            <input type="number" name="ano" placeholder="Ano (ex: 2026)">
+
+            <button type="submit">Filtrar</button>
+
+        </form>
+    </div>
 
     <!-- FORMULÁRIO PRINCIPAL -->
     <div class="card">
         <h2>Adicionar Registro</h2>
+
         <form method="post" action="/">
+
             <input type="text" name="descricao" placeholder="Descrição" required>
 
             <select name="tipo" required>
@@ -27,47 +66,65 @@
             <input type="date" name="data" required>
 
             <button type="submit">Salvar</button>
+
         </form>
     </div>
 
     <!-- RESUMO -->
     <div class="card resumo">
+
         <h2>Resumo Financeiro</h2>
+
         <p><strong>Total Receitas:</strong> R$ {{ receitas }}</p>
         <p><strong>Total Despesas:</strong> R$ {{ despesas }}</p>
         <p><strong>Saldo Final:</strong> R$ {{ saldo }}</p>
+
     </div>
 
     <!-- TABELA DE REGISTROS -->
     <div class="card">
+
         <h2>Registros</h2>
+
         <table>
+
             <tr>
                 <th>Data</th>
                 <th>Descrição</th>
                 <th>Tipo</th>
                 <th>Valor</th>
             </tr>
+
             {% for r in registros %}
+
             <tr>
-                <td>{{ r[4] }}</td>
+                <td>{{ r[4].strftime("%d/%m/%Y") }}</td>
                 <td>{{ r[1] }}</td>
                 <td>{{ r[2] }}</td>
                 <td>R$ {{ r[3] }}</td>
             </tr>
+
             {% endfor %}
+
         </table>
+
     </div>
 
-    <!-- EXPORTAR PDF COM FILTRO -->
+    <!-- EXPORTAR PDF -->
     <div class="card">
+
         <h2>Exportar Relatório</h2>
 
         <form method="get" action="/exportar_pdf">
-            <input type="number" name="ano" placeholder="Ano (ex: 2025)">
+
+            <input type="number" name="ano" placeholder="Ano (ex: 2026)">
+
             <input type="number" name="mes" placeholder="Mês (1-12)">
+
             <button type="submit">Exportar PDF</button>
+
         </form>
+
     </div>
 
 </div>
