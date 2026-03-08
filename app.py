@@ -42,7 +42,6 @@ def criar_banco():
     )
     """)
 
-    # NOVA TABELA DE MESES FECHADOS
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS meses_fechados (
         id SERIAL PRIMARY KEY,
