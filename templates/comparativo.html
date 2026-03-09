@@ -1,23 +1,53 @@
-<h1>Comparativo de Meses</h1>
+<!DOCTYPE html>
+<html>
 
-<table border="1">
+<head>
+<meta charset="UTF-8">
+<title>Comparativo Mensal</title>
 
-<tr>
-<th>Mês</th>
-<th>Receitas</th>
-<th>Despesas</th>
-<th>Saldo</th>
-</tr>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-{% for r in dados %}
+</head>
 
-<tr>
-<td>{{ r[0] }}</td>
-<td>{{ r[1] }}</td>
-<td>{{ r[2] }}</td>
-<td>{{ r[1] - r[2] }}</td>
-</tr>
+<body>
 
-{% endfor %}
+<h1>Comparativo Mensal</h1>
 
-</table>
+<a href="/">Voltar</a>
+
+<br><br>
+
+<canvas id="grafico"></canvas>
+
+<script>
+
+const meses = {{ meses|tojson }};
+const receitas = {{ receitas|tojson }};
+const despesas = {{ despesas|tojson }};
+
+new Chart(document.getElementById("grafico"), {
+
+    type: "bar",
+
+    data: {
+        labels: meses,
+
+        datasets: [
+            {
+                label: "Receitas",
+                data: receitas
+            },
+            {
+                label: "Despesas",
+                data: despesas
+            }
+        ]
+    }
+
+});
+
+</script>
+
+</body>
+
+</html>

@@ -55,19 +55,7 @@ def index():
         conn.commit()
         return redirect("/")
 
-    mes = request.args.get("mes")
-    ano = request.args.get("ano")
-
-    query = "SELECT * FROM registros"
-    params = []
-
-    if mes and ano:
-        query += " WHERE strftime('%m', data) = ? AND strftime('%Y', data) = ?"
-        params = [f"{int(mes):02d}", ano]
-
-    query += " ORDER BY data DESC"
-
-    c.execute(query, params)
+    c.execute("SELECT * FROM registros ORDER BY data DESC")
     registros = c.fetchall()
 
     receitas = sum(r[3] for r in registros if r[2] == "receita")
@@ -79,10 +67,73 @@ def index():
     return render_template(
         "index.html",
         registros=registros,
-        receitas=round(receitas, 2),
-        despesas=round(despesas, 2),
-        saldo=round(saldo, 2),
+        receitas=receitas,
+        despesas=despesas,
+        saldo=saldo,
     )
+
+
+@app.route("/historico")
+def historico():
+
+    conn = conectar()
+    c = conn.cursor()
+
+    c.execute("SELECT * FROM registros ORDER BY data DESC")
+    registros = c.fetchall()
+
+    conn.close()
+
+    return render_template("historico.html", registros=registros)
+
+
+@app.route("/comparativo")
+def comparativo():
+
+    conn = conectar()
+    c = conn.cursor()
+
+    c.execute("""
+    SELECT strftime('%m', data) as mes,
+    SUM(CASE WHEN tipo='receita' THEN valor ELSE 0 END),
+    SUM(CASE WHEN tipo='despesa' THEN valor ELSE 0 END)
+    FROM registros
+    GROUP BY mes
+    """)
+
+    dados = c.fetchall()
+
+    meses = []
+    receitas = []
+    despesas = []
+
+    for d in dados:
+        meses.append(d[0])
+        receitas.append(d[1])
+        despesas.append(d[2])
+
+    conn.close()
+
+    return render_template(
+        "comparativo.html",
+        meses=meses,
+        receitas=receitas,
+        despesas=despesas
+    )
+
+
+@app.route("/fechar_mes")
+def fechar_mes():
+
+    conn = conectar()
+    c = conn.cursor()
+
+    c.execute("DELETE FROM registros")
+
+    conn.commit()
+    conn.close()
+
+    return redirect("/")
 
 
 @app.route("/exportar_pdf")
@@ -98,7 +149,6 @@ def exportar_pdf():
     pdf = canvas.Canvas(buffer)
 
     y = 800
-
     pdf.drawString(200, 820, "Relatório Financeiro")
 
     for r in registros:

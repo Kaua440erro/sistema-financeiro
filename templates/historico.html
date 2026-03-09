@@ -1,23 +1,23 @@
-<h1>Histórico Financeiro</h1>
+<h1>Histórico</h1>
+
+<a href="/">Voltar</a>
 
 <table border="1">
 
 <tr>
-<th>Ano</th>
-<th>Mês</th>
-<th>Receitas</th>
-<th>Despesas</th>
-<th>Saldo</th>
+<th>Data</th>
+<th>Descrição</th>
+<th>Tipo</th>
+<th>Valor</th>
 </tr>
 
-{% for r in dados %}
+{% for r in registros %}
 
 <tr>
-<td>{{ r[0] }}</td>
+<td>{{ r[4] }}</td>
 <td>{{ r[1] }}</td>
 <td>{{ r[2] }}</td>
 <td>{{ r[3] }}</td>
-<td>{{ r[2] - r[3] }}</td>
 </tr>
 
 {% endfor %}
